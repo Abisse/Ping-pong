@@ -1,12 +1,11 @@
 from pygame import *
-from pygame.sprite import _Group
 
 class GameSprite(sprite.Sprite):
     def __init__(self, filename, size, coords):
         super().__init__()
         self.image = transform.scale(image.load(filename), size)
         self.rect = self.image.get_rect()
-        self.rect.move()
+        self.rect.x, self.rect.y = coords
 
     def reset(self):
         mw.blit(self.image, self.rect)
@@ -24,18 +23,61 @@ class Player(GameSprite):
         if keys[self.keys[1]] and self.rect.y < HEIGHT - self.rect.height:
             self.rect.y += self.speed
 
+class Ball(GameSprite):
+    def __init__(self, coords):
+        super().__init__('tenis_ball.png', (50, 50), coords)
+        self.dx, self.dy = 5, 5
+
+    def update(self):
+        self.rect.x += self.dx
+        self.rect.y += self.dy
+
+        if self.rect.y <= 0:
+            self.dy *= -1
+
+        if self.rect.y >= HEIGHT - self.rect.height:
+            self.dy *= -1
+
+        if self.rect.colliderect(player1.rect):
+            self.dx *= -1
+
+        if self.rect.colliderect(player2.rect):
+            self.dx *= -1
+
+class Score(object):
+    font_ = font.font(None, 50)
+    left_score = 0
+    right_score = 0
+
+    @staticmethod
+    def draw():
+        text = f"{Score.left_score} : {Score.right_score}"
+        _image = Score._font.render(text, True, (40, 40, 40))
+        _rect = _image.get_rect()
+        _rect.centerx = mw.get_rect().centerx
+        _rect.y = 10
+        mw.blit(_image, _rect)
+
+    @staticmethod
+    def add(left=0, right=0):
+        if left: Score.left_score += 1
+        elif right: Score.right_score += 1
+
+
+
 WIDTH, HEIGHT = 700, 500
 FPS = 60
 
-mw = display.set_mode((WIDTH, HEIGHT))
+mw = display.set_mode((WIDTH, HEIGHT)) 
 display.set_caption("Ping-Pong")
 clock = time.Clock()
 
-player1 = Player('player.png', (30, 100), (0, 0), 5, [K_w, K_s])
-player2 = Player('player.png', (30, 100), (WIDTH-30, 0), 5, [K_UP, K_DOWN])
+player1 = Player('racket.png', (30, 100), (0, 0), 5, [K_w, K_s])
+player2 = Player('racket.png', (30, 100), (WIDTH-30, 0), 5, [K_UP, K_DOWN])
+ball = Ball((WIDTH // 2, HEIGHT // 2))
 
 game = True
-finish = True
+finish = False
 
 while game:
     if not finish:
@@ -44,6 +86,11 @@ while game:
         player2.update()
         player1.reset()
         player2.reset()
+        ball.update()
+        player1.reset()
+        player2.reset()
+        ball.reset()
+        Score.draw()
 
     for e in event.get():
         if e.type == QUIT:
